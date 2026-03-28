@@ -8,9 +8,9 @@ import java.util.Collection;
 import java.util.Collections;
 
 public class CustomUserDetails implements UserDetails {
-    private final UserVo users;
-    public CustomUserDetails(UserVo user) {
-        this.users = user;
+    private final UserDTO userDTO;
+    public CustomUserDetails(UserDTO userDTO) {
+        this.userDTO = userDTO;
     }
 
     /**
@@ -21,7 +21,7 @@ public class CustomUserDetails implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         // DB에 저장된 권한(예: "USER")을 "ROLE_USER" 형태로 변환하여 반환
-        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + users.getAuth()));
+        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + userDTO.getRoleAuth()));
     }
 
     /**
@@ -29,7 +29,7 @@ public class CustomUserDetails implements UserDetails {
      */
     @Override
     public String getPassword() {
-        return users.getPassword();
+        return userDTO.getPassword();
     }
 
     /**
@@ -37,7 +37,7 @@ public class CustomUserDetails implements UserDetails {
      */
     @Override
     public String getUsername() {
-        return users.getUserId();
+        return userDTO.getLoginId();
     }
 
     /**
@@ -75,7 +75,7 @@ public class CustomUserDetails implements UserDetails {
     /**
      * [꿀팁] 필요한 경우 실제 UserVO 객체를 통째로 꺼낼 수 있도록 Getter 추가
      */
-    public UserVo getUserVO() {
-        return users;
+    public UserDTO getUserVO() {
+        return userDTO;
     }
 }

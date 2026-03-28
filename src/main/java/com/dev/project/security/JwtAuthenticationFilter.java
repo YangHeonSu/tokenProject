@@ -25,6 +25,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         // 1. 요청 헤더(Authorization)에서 토큰만 쏙 뽑아옴
         String token = resolveToken(request);
+
         // token이 존재하고 유효성이 검증된 토큰일 경우
         if (token != null && jwtTokenProvider.validateToken(token)) {
             // 토큰에서 유저 정보를 꺼내 인증 객체를 생성

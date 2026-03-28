@@ -1,5 +1,6 @@
 package com.dev.project.security;
 
+import com.dev.project.user.CustomOAuth2UserService;
 import io.jsonwebtoken.lang.Arrays;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -9,6 +10,8 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,29 +26,42 @@ import org.springframework.web.cors.CorsConfigurationSource;
 @RequiredArgsConstructor
 public class SecurityConfig {
     private final JwtTokenProvider jwtTokenProvider;
+    // 🌟 2. 우리가 만든 CustomOAuth2UserService 주입받기
+    private final CustomOAuth2UserService customOAuth2UserService;
+    private final OAuth2SuccessHandler oAuth2SuccessHandler;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // 1. CSRF 비활성화 (JWT 사용 시 필수)
-                .csrf(csrf -> csrf.disable())
-                // 3. 세션 미사용 (Stateless 설정)
+                .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                // 4. URL 권한 설정
+
+                // 1. URL 권한 설정 (로그인 페이지 경로 추가!)
                 .authorizeHttpRequests(auth -> auth
-                        // 로그인, 회원가입, 토큰 재발급은 토큰 없이도 접근 가능해야 함
-                        .requestMatchers("/api/login", "/api/join", "/api/reissue").permitAll()
+                        .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico", "/error").permitAll()
+                        // "/login" 경로를 누구나 볼 수 있게 추가해줍니다.
+                        .requestMatchers("/api/login", "/api/join", "/api/reissue", "/login").permitAll()
                         .anyRequest().authenticated()
-                ).exceptionHandling(exception -> exception
-                        .authenticationEntryPoint((request, response, authException) -> {
-                            // 토큰이 없거나 만료된 경우 401 에러를 JSON으로 직접 응답
-                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                            response.setContentType("application/json;charset=utf-8");
-                            response.getWriter().write("{\"status\": 401, \"message\": \"토큰이 유효하지 않거나 만료되었습니다.\"}");
-                        })
                 )
 
-                // 5. JWT 필터 순서 설정
+                // (기존 예외처리 코드 동일)
+//                .exceptionHandling(exception -> exception
+//                        .authenticationEntryPoint((request, response, authException) -> {
+//                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+//                            response.setContentType("application/json;charset=utf-8");
+//                            response.getWriter().write("{\"status\": 401, \"message\": \"토큰이 유효하지 않거나 만료되었습니다.\"}");
+//                        })
+//                )
+
+// 🌟 3. OAuth2 로그인 설정에 우리가 만든 서비스 장착!
+                .oauth2Login(oauth2 -> oauth2
+                        .loginPage("/login")
+                        .userInfoEndpoint(userInfo -> userInfo
+                                .userService(customOAuth2UserService) // ⬅️ "네이버 인증 끝나면 이 클래스 실행해!" 라고 지시
+                        )
+                        .successHandler(oAuth2SuccessHandler) // 이건 다음 스텝(JWT 발급)에서 만들 겁니다!
+                )
+
                 .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider),
                         UsernamePasswordAuthenticationFilter.class);
 
@@ -64,6 +80,12 @@ public class SecurityConfig {
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
         return configuration.getAuthenticationManager();
+    }
+
+    @Bean
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        // 🌟 favicon.ico 요청은 시큐리티 필터 체인을 아예 타지 않도록 설정합니다.
+        return (web) -> web.ignoring().requestMatchers("/favicon.ico");
     }
 
 }

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Login</title>
+    <meta charset="utf-8">
+    <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet">
+    <link th:href="@{/css/sb-admin-2.min.css}" rel="stylesheet">
+</head>
+<body class="bg-gradient-primary">
+<div class="container" style="margin-top: 150px">
+    <div class="row justify-content-center">
+        <div class="col-xl-10 col-lg-12 col-md-9">
+            <div class="card o-hidden border-0 shadow-lg my-5">
+                <div class="card-body p-0">
+                    <div class="row">
+                        <div class="col-lg-6 d-none d-lg-block bg-login-image"></div>
+                        <div class="col-lg-6">
+                            <div class="p-5">
+                                <div class="text-center">
+                                    <h1 class="h4 text-gray-900 mb-4">환영합니다!</h1>
+                                </div>
+
+                                <form id="loginForm" class="user">
+                                    <div class="form-group">
+                                        <input type="text" class="form-control form-control-user"
+                                               id="userId" placeholder="아이디를 입력하세요">
+                                    </div>
+                                    <div class="form-group">
+                                        <input type="password" class="form-control form-control-user"
+                                               id="password" placeholder="비밀번호를 입력하세요">
+                                    </div>
+                                    <button type="submit" class="btn btn-primary btn-user btn-block">
+                                        일반 로그인
+                                    </button>
+                                </form>
+
+                                <div id="errorMessage" style="color: red; font-size: 0.9em; display: none;" class="mt-3 text-center">
+                                    아이디 또는 비밀번호를 잘못 입력했습니다.
+                                </div>
+
+                                <hr>
+
+                                <a th:href="@{/oauth2/authorization/naver}" class="btn btn-user btn-block" style="background-color: #03c75a; color: white; font-weight: bold; text-decoration: none;">
+                                    네이버로 시작하기
+                                </a>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+        e.preventDefault(); // 기본 폼 제출(새로고침) 막기
+
+        const userId = document.getElementById('userId').value;
+        const password = document.getElementById('password').value;
+
+        // 백엔드로 JSON 데이터 쏘기
+        fetch('/api/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                userId: userId,     // 백엔드 DTO 변수명에 맞게 수정하세요
+                password: password  // 백엔드 DTO 변수명에 맞게 수정하세요
+            })
+        })
+            .then(response => {
+                if (response.ok) {
+                    // 로그인 성공 시 (일반적으로 백엔드가 토큰을 JSON이나 헤더로 줍니다)
+                    return response.json(); // 백엔드가 {"token": "eyJ..."} 형태로 준다고 가정
+                } else {
+                    throw new Error('로그인 실패');
+                }
+            })
+            .then(data => {
+                // 발급받은 JWT를 로컬 스토리지에 저장!
+                // data.token은 백엔드 응답 키값에 맞춰 수정하세요 (예: data.accessToken)
+                localStorage.setItem('accessToken', data.token);
+
+                alert('로그인 성공!');
+                window.location.href = '/'; // 로그인 성공 후 메인 페이지로 이동
+            })
+            .catch(error => {
+                document.getElementById('errorMessage').style.display = 'block';
+            });
+    });
+</script>
+</body>
+</html>
