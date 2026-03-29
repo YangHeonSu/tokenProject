@@ -7,6 +7,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
 @Slf4j
@@ -33,6 +34,19 @@ public class GlobalExceptionHandler {
         log.error("서버 에러 발생: ", e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new ErrorResponse(500, "서버 내부 오류가 발생했습니다."));
+    }
+
+
+    // GlobalExceptionHandler 클래스 내부에 추가
+    @ExceptionHandler(NoResourceFoundException.class)
+    public Object handleNoResourceFoundException(NoResourceFoundException e) {
+        if (e.getResourcePath().contains("favicon.ico")) {
+            // 파비콘 요청으로 인한 에러는 무시하고 넘김
+            return ResponseEntity.notFound().build();
+        }
+        // 다른 리소스를 못 찾은 진짜 에러의 경우 기존 로직 처리
+        log.error("서버 에러 발생: ", e);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Resource not found");
     }
 
 

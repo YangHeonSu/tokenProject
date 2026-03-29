@@ -8,24 +8,23 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
+public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
     private final JwtTokenProvider jwtTokenProvider;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
                                         Authentication authentication) throws IOException, ServletException {
-        // 1. 방금 DB에 저장되고 인증 완료된 유저 정보 가져오기
-        CustomOAuth2User customOAuth2User = (CustomOAuth2User) authentication.getPrincipal();
-
-        log.info("authentication : {}" , authentication);
+        log.info("authentication : {}", authentication);
         // 2. JWT 토큰 만들기
         // 🚨 주의: jwtTokenProvider.createToken(...) 의 파라미터는 개발자님이 만들어두신 메서드에 맞게 수정하세요!
         // 보통은 로그인 아이디(loginId)와 권한(role)을 넣어서 만듭니다.
@@ -37,12 +36,12 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         log.info("accessToken : {}", tokenVo.getAccessToken());
         log.info("refreshToken : {}", tokenVo.getRefreshToken());
 
-// 우선 테스트를 위해 주소창에 같이 실어 보냅니다.
-        String targetUrl = "/dashboard"
-                + "?accessToken=" + tokenVo.getAccessToken()
-                + "&refreshToken=" + tokenVo.getRefreshToken();
+        // 3. 두 토큰을 모두 쿼리 파라미터로 전달
+        String targetUrl = UriComponentsBuilder.fromUriString("/")
+                .queryParam("accessToken", tokenVo.getAccessToken())
+                .queryParam("refreshToken", tokenVo.getRefreshToken())
+                .build().toUriString();
 
-        response.sendRedirect(targetUrl);
-
+        getRedirectStrategy().sendRedirect(request, response, targetUrl);
     }
 }
