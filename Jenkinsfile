@@ -14,18 +14,18 @@ pipeline {
             }
         }
 
-        stage('Build') {
-            steps {
-                echo 'Building Spring Boot Application with Java 17...'
-                // 여기서 실행되는 java는 위 tools에서 설정한 17 버전이 됩니다.
-                sh './gradlew clean build -x test'
-            }
-        }
+stage('Build') {
+    steps {
+        // 도구 설정 무시하고 시스템에 깔린(또는 직접 지정한) java 확인
+        sh 'java -version'
+        sh './gradlew clean build -x test'
+    }
+}
 
         stage('Docker Deploy') {
             steps {
                 echo 'Deploying with Docker Compose...'
-                sh 'docker compose up --build -d'
+                sh 'docker-compose up --build -d'
             }
         }
     }
