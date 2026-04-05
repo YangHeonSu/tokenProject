@@ -25,7 +25,7 @@ pipeline {
         stage('Docker Deploy') {
             steps {
                 echo 'Deploying with Docker Compose...'
-                sh 'docker-compose up --build -d'
+                sh 'docker compose up --build -d'
             }
         }
     }
